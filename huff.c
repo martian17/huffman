@@ -30,7 +30,7 @@ void sort_nodes(node_t** nodes, size_t start, size_t end){
 }
 
 //tally the bits
-node_t* tally(char* str, size_t size){//returns a ll of nodes
+node_t** tally(char* str, size_t size){//returns a ll of nodes
     //size_t table[256];// = calloc(256, sizeof(size_t));
     size_t* table = calloc(256, sizeof(size_t));
     for(size_t i = 0; i < size; i++){
@@ -49,6 +49,38 @@ node_t* tally(char* str, size_t size){//returns a ll of nodes
     //sort the tally from lower to hight
     sort_nodes((node_t**)table,0,256);
     return (node_t**)table;
+}
+
+node_t* construct_tree(node_t head){
+    next = head->right;
+    if(next === nullptr){
+        return head;
+    }
+    if(head->cnt < next->cnt){
+        //combine head and next
+        node_t* node1 = malloc(sizeof(node_t));
+        node1->left = head;
+        node1->right = next;
+        node1->cnt = head->cnt + next->cnt;
+        
+    }
+}
+
+
+node_t* construct_tree(node_t** nodes, node_t* comp, size_t pos, size_t size){
+    node_t* root = 
+    next = head->right;
+    if(next === nullptr){
+        return head;
+    }
+    if(head->cnt < next->cnt){
+        //combine head and next
+        node_t* node1 = malloc(sizeof(node_t));
+        node1->left = head;
+        node1->right = next;
+        node1->cnt = head->cnt + next->cnt;
+        
+    }
 }
 
 
@@ -91,6 +123,9 @@ int main(int argc, char** argv){
         node_t* node = nodes[i];
         if(node->cnt != 0){
             break;
+        }else{
+            //free everything
+            free(node);
         }
     }
     
@@ -98,6 +133,23 @@ int main(int argc, char** argv){
         fprintf(stderr,"empty file");
         exit(1);
     }
+    
+    //convert this to linked list
+    node_t* head = nodes[i];
+    node_t* tail = head;
+    i++;
+    
+    for(; i < 256; i++){
+        tail->right = nodes[i];
+        tail = nodes[i];
+    }
+    
+    process(head);
+    
+    
+    
+    
+    /*
     
     node_t* root = nodes[i];
     i++;
@@ -118,7 +170,7 @@ int main(int argc, char** argv){
             
         }
     }
-    
+    */
     
     
 }
