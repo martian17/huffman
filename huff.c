@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <ctype.h>
 
 typedef struct{
     char code;
@@ -8,6 +9,30 @@ typedef struct{
     void* left;
     void* right;
 } node_t;
+
+void printNode(node_t* node){
+    if(node == NULL){
+        printf("0");
+        return;
+    }
+    printf("{");
+    if(node->left == NULL && node->right == NULL){//leaf node
+        printf("char:'%c',",isprint(node->code)?node->code:' ');
+        printf("cnt:%ld,code:%d",node->cnt,(uint8_t)node->code);
+    }else{//stem node
+        printf("cnt:%ld",node->cnt);
+        printf(",left:");
+        printNode(node->left);
+        printf(",right:");
+        printNode(node->right);
+    }
+    printf("}");
+}
+
+typedef struct{
+    void* content;
+    void* next;
+} ll_node_t;
 
 //qick sort
 void sort_nodes(node_t** nodes, size_t start, size_t end){
@@ -51,38 +76,39 @@ node_t** tally(char* str, size_t size){//returns a ll of nodes
     return (node_t**)table;
 }
 
-node_t* construct_tree(node_t head){
-    next = head->right;
-    if(next === nullptr){
+ll_node_t* construct_tree(ll_node_t* head, size_t max_val){
+    ll_node_t* next = head->next;
+    if(next == NULL){
         return head;
     }
-    if(head->cnt < next->cnt){
-        //combine head and next
-        node_t* node1 = malloc(sizeof(node_t));
-        node1->left = head;
-        node1->right = next;
-        node1->cnt = head->cnt + next->cnt;
-        
+    node_t* head_node = head->content;
+    node_t* next_node = next->content;
+    //unite what needs to be united
+    size_t cnt1 = head_node->cnt;
+    size_t cnt2 = next_node->cnt;
+    while(cnt1 < max_val){
+        if(cnt1 > cnt2){//unite what's on the right
+            next = construct_tree(next,cnt1);
+            next_node = next->content;
+            cnt2 = next_node->cnt;
+        }
+        if(cnt2 < max_val){
+            //merge head and next
+            node_t* node1 = malloc(sizeof(node_t));
+            node1->left = head_node;
+            node1->right = next_node;
+            node1->cnt = cnt1+cnt2;
+            node1->code = 0;
+            head->content = node1;
+            head->next = next->next;
+            free(next);
+            
+            //parity
+            
+        }
     }
+    return head;
 }
-
-
-node_t* construct_tree(node_t** nodes, node_t* comp, size_t pos, size_t size){
-    node_t* root = 
-    next = head->right;
-    if(next === nullptr){
-        return head;
-    }
-    if(head->cnt < next->cnt){
-        //combine head and next
-        node_t* node1 = malloc(sizeof(node_t));
-        node1->left = head;
-        node1->right = next;
-        node1->cnt = head->cnt + next->cnt;
-        
-    }
-}
-
 
 int main(int argc, char** argv){
     if(argc != 2)
@@ -135,17 +161,32 @@ int main(int argc, char** argv){
     }
     
     //convert this to linked list
-    node_t* head = nodes[i];
-    node_t* tail = head;
+    ll_node_t* head = malloc(sizeof(ll_node_t));
+    head->content = nodes[i];
+    ll_node_t* tail = head;
     i++;
     
     for(; i < 256; i++){
-        tail->right = nodes[i];
-        tail = nodes[i];
+        tail->next = malloc(sizeof(ll_node_t));
+        tail = tail->next;
+        tail->content = nodes[i];
     }
+    tail->next = NULL;
     
-    process(head);
-    
+    ll_node_t* llnode = construct_tree(head,SIZE_MAX);
+    if(llnode->next != NULL){
+        fprintf(stderr, "error constructing a huffman tree, extra element in the ll\n");
+        while(llnode != NULL){
+            printNode(llnode->content);
+            printf("\n\n");
+            llnode = llnode->next;
+        }
+        exit(1);
+    }
+    node_t* tree = llnode->content;
+    free(llnode);
+    printNode(tree);
+    printf("\n");
     
     
     
