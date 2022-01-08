@@ -10,6 +10,16 @@ typedef struct{
     void* right;
 } node_t;
 
+void free_node_recursive(node_t* node){
+    if(node->left != NULL){
+        free_node_recursive(node->left);
+    }
+    if(node->right != NULL){
+        free_node_recursive(node->right);
+    }
+    free(node);
+}
+
 void printNode(node_t* node){
     if(node == NULL){
         printf("0");
@@ -48,34 +58,9 @@ void fprintNode(node_t* node){
     fprintf(stderr,"}");
 }
 
-typedef struct{
-    void* content;
-    void* next;
-} ll_node_t;
-
-//qick sort
-void sort_nodes(node_t** nodes, size_t start, size_t end){
-    if(end - start <= 1){
-        return;
-    }
-    node_t* piv_node = nodes[start];
-    size_t piv_val = piv_node->cnt;
-    size_t piv_pos = start;
-    for(size_t i = start+1; i < end; i++){
-        if(nodes[i]->cnt < piv_val){
-            nodes[piv_pos] = nodes[i];
-            piv_pos++;
-            nodes[i] = nodes[piv_pos];
-        }//else just progress the pointer
-    }//now left of the piv will be lower, right will be higher in value
-    nodes[piv_pos] = piv_node;
-    sort_nodes(nodes,start,piv_pos);
-    sort_nodes(nodes,piv_pos+1,end);
-}
 
 //tally the bits
 node_t** tally(char* str, size_t size){//returns a ll of nodes
-    //size_t table[256];// = calloc(256, sizeof(size_t));
     size_t* table = calloc(256, sizeof(size_t));
     for(size_t i = 0; i < size; i++){
         table[str[i]]++;
@@ -90,11 +75,11 @@ node_t** tally(char* str, size_t size){//returns a ll of nodes
         node->left = NULL;
         node->right = NULL;
     }
-    //sort the tally from lower to hight
-    //sort_nodes((node_t**)table,0,256);
     return (node_t**)table;
 }
 
+
+//minheap methods
 node_t** minheap_construct(size_t length){
     node_t** heap = calloc(length+1, sizeof(size_t));
     heap[0] = malloc(sizeof(node_t));
@@ -111,13 +96,7 @@ void minheap_destruct(node_t** heap){
 void minheap_push(node_t** heap, size_t* tail0, node_t* node){
     (*tail0)++;
     size_t tail = (*tail0);
-    //fprintf(stderr,"tail/2: %ld\n",tail/2);
-    //fprintf(stderr,"pppppp: %ld\n",heap[tail/2]);
     node_t* parent = heap[tail/2];
-    //fprintNode(node);
-    //fprintf(stderr,"\n");
-    //fprintNode(parent);
-    //fprintf(stderr,"\n");
     while(parent->cnt > node->cnt && parent->cnt != SIZE_MAX){
         heap[tail] = parent;
         tail = tail/2;
@@ -173,6 +152,63 @@ node_t* minheap_pop(node_t** heap, size_t* tail0){
     return result;
 }
 
+node_t* construct_huffman_tree(char* buff, size_t size){
+    node_t** nodes = tally(buff,size);
+    
+    //printint nodes
+    for(size_t i = 0; i < 256; i++){
+        fprintNode(nodes[i]);
+        fprintf(stderr,"\n");
+    }
+    fprintf(stderr,"\n");
+    
+    //convert this to a binary heap
+    node_t** heap = minheap_construct(256);
+    size_t tail = 0;
+    
+    for(size_t i = 0; i < 256; i++){
+        minheap_push(heap,&tail,nodes[i]);
+    }
+    
+    //nodes no longer needed
+    free(nodes);
+    
+    //delete the nodes with 0 cnt value
+    for(size_t i = 0; i < 256; i++){
+        if(heap[1]->cnt != 0){
+            break;
+        }
+        node_t* node = minheap_pop(heap,&tail);
+        free(node);
+    }
+    
+    //printing the current length
+    fprintf(stderr,"tail: %zu\n",tail);
+    //printint nodes
+    for(size_t i = 0; i <= tail; i++){
+        fprintNode(heap[i]);
+        fprintf(stderr,"\n");
+    }
+    fprintf(stderr,"\n");
+    
+    
+    //constructing a tree
+    while(tail != 1){//until there is a single element left in the heap
+        node_t* node1 = minheap_pop(heap,&tail);
+        node_t* node2 = minheap_pop(heap,&tail);
+        node_t* node = malloc(sizeof(node_t));
+        node->left = node1;
+        node->right = node2;
+        node->cnt = node1->cnt+node2->cnt;
+        minheap_push(heap,&tail,node);
+    }
+    node_t* tree = heap[1];
+    //free the heap
+    minheap_destruct(heap);
+    //now we have a clean tree to work with
+    return tree;
+}
+
 int main(int argc, char** argv){
     if(argc != 2)
         fprintf(stderr,"Usage: ./a.out filename\n");
@@ -190,80 +226,42 @@ int main(int argc, char** argv){
     fread(buff, fsize, 1, file);
     fclose(file);
     
+    //printing the incoming buffer
     for(size_t i = 0; i < fsize; i++){
         printf("%c",buff[i]);
     }
     
+    node_t* tree = construct_huffman_tree(buff,fsize);
     
-    node_t** nodes = tally(buff,fsize);
-    
-    for(size_t i = 0; i < 256; i++){
-        node_t* node = nodes[i];
-        printf("letter: \"%c\"\n",node->code);
-        printf("code:   %d \n",(uint8_t)node->code);
-        printf("cnt:    %ld\n",node->cnt);
-        printf("\n");
-    }
-    
-    
-    //convert this to a inary heap
-    node_t** heap = minheap_construct(256);
-    size_t tail = 0;
-    
-    for(size_t i = 0; i < 256; i++){
-        //fprintf(stderr,"!%d\n",i);
-        minheap_push(heap,&tail,nodes[i]);
-    }
-    fprintf(stderr,"tail: %zu\n",tail);
-    fprintf(stderr,"Now printing heap !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    
-    
-    //nodes no longer needed
-    free(nodes);
-    
-    for(size_t i = 0; i < 256; i++){
-        if(heap[1]->cnt != 0){
-            break;
-        }
-        node_t* node = minheap_pop(heap,&tail);
-        free(node);
-    }
-    fprintf(stderr,"tail: %zu\n",tail);
-    
-    for(size_t i = 0; i <= tail; i++){
-        fprintNode(heap[i]);
-        fprintf(stderr,"\n");
-    }
-    
-    fprintf(stderr,"\n");
-    
-    /*while(tail != 1){//until there is a single element left in the heap
-        node_t* node = minheap_pop(heap,&tail);
-        fprintNode(node);
-        fprintf(stderr,"\n");
-    }*/
-    
-    
-    //constructing a tree
-    while(tail != 1){//until there is a single element left in the heap
-        node_t* node1 = minheap_pop(heap,&tail);
-        /*fprintNode(node1);
-        fprintf(stderr,"\n");*/
-        node_t* node2 = minheap_pop(heap,&tail);
-        node_t* node = malloc(sizeof(node_t));
-        node->left = node1;
-        node->right = node2;
-        node->cnt = node1->cnt+node2->cnt;
-        minheap_push(heap,&tail,node);
-    }
-    node_t* tree = heap[1];
-    minheap_destruct(heap);
-    //now we have a clean tree to work with
     printNode(tree);
     printf("\n");
-    free(tree);
+    
+    free_node_recursive(tree);
 }
 
+
+
+
+//not using it anymore but kinda hesitant to delete it
+//qick sort
+void sort_nodes(node_t** nodes, size_t start, size_t end){
+    if(end - start <= 1){
+        return;
+    }
+    node_t* piv_node = nodes[start];
+    size_t piv_val = piv_node->cnt;
+    size_t piv_pos = start;
+    for(size_t i = start+1; i < end; i++){
+        if(nodes[i]->cnt < piv_val){
+            nodes[piv_pos] = nodes[i];
+            piv_pos++;
+            nodes[i] = nodes[piv_pos];
+        }//else just progress the pointer
+    }//now left of the piv will be lower, right will be higher in value
+    nodes[piv_pos] = piv_node;
+    sort_nodes(nodes,start,piv_pos);
+    sort_nodes(nodes,piv_pos+1,end);
+}
 
 
 
