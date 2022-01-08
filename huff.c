@@ -58,6 +58,30 @@ void fprintNode(node_t* node){
     fprintf(stderr,"}");
 }
 
+void printNodeJSON(node_t* node){
+    if(node == NULL){
+        printf("0");
+        return;
+    }
+    printf("{");
+    if(node->left == NULL && node->right == NULL){//leaf node
+        char print_char = isprint(node->code)?node->code:' ';
+        if(print_char == '\''){
+            printf("\"char\":\"\\'\",");
+        }else{
+            printf("\"char\":\"%c\",",print_char);
+        }
+        printf("\"cnt\":%zu,\"code\":%d",node->cnt,(uint8_t)node->code);
+    }else{//stem node
+        printf("\"cnt\":%zu",node->cnt);
+        printf(",\"left\":");
+        printNodeJSON(node->left);
+        printf(",\"right\":");
+        printNodeJSON(node->right);
+    }
+    printf("}");
+}
+
 
 //tally the bits
 node_t** tally(char* str, size_t size){//returns a ll of nodes
@@ -233,7 +257,7 @@ int main(int argc, char** argv){
     
     node_t* tree = construct_huffman_tree(buff,fsize);
     
-    printNode(tree);
+    printNodeJSON(tree);
     printf("\n");
     
     free_node_recursive(tree);
