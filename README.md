@@ -54,7 +54,7 @@ The first 64 bits of the header is dedicated to the document size. It indicates 
 ### Size of the code size indicator
 The next 16 bits indicates the size of the code size in the compressed table.
 ```
-10100000 00000000 00000000
+10100000 00000000
 ```
 
 ### compressed table
