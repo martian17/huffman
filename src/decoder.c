@@ -101,14 +101,31 @@ int main(int argc, char** argv){
     node_print_json(root);
     
     //decoding the file
-    printf("size: %ld\n",size);
+    printf("decoded size: %ld\n",size);
+    uint8_t* buff2 = malloc(size);
+    
     for(size_t i = 0; i < size; i++){
         node_t* tree = root;
         while(tree->left != NULL){
             tree = buffer_read_bit(field)?tree->right:tree->left;
         }
-        printf("%c",tree->code);
+        buff2[i] = tree->code;
+        //printf("%c",tree->code);
     }
+    
+    fprintf(stderr,"Writing to the file: %s\n",dname);
+    FILE* dfile = fopen(dname,"wb");
+    if (dfile){
+        fwrite(buff2, size, 1, dfile);
+        fprintf(stderr,"Complete\n");
+    }
+    else{
+        fprintf(stderr,"Error writing to the file: %s\n",dname);
+    }
+    
+    //freeing things
+    buffer_destruct(field);
+    node_destruct_recursive(root);
 }
 
 
