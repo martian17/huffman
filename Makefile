@@ -34,3 +34,5 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(DEPS)
 
 clean:
 	rm -rf $(OBJDIR)/*
+
+
