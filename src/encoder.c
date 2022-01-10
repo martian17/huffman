@@ -2,98 +2,6 @@
 #include "table.h"
 
 
-void free_node_recursive(node_t* node){
-    if(node->left != NULL){
-        free_node_recursive(node->left);
-    }
-    if(node->right != NULL){
-        free_node_recursive(node->right);
-    }
-    free(node);
-}
-
-void printNode(node_t* node){
-    if(node == NULL){
-        printf("0");
-        return;
-    }
-    printf("{");
-    if(node->left == NULL && node->right == NULL){//leaf node
-        printf("char:'%c',",isprint(node->code)?node->code:' ');
-        printf("cnt:%zu,code:%d",node->cnt,(uint8_t)node->code);
-    }else{//stem node
-        printf("cnt:%zu",node->cnt);
-        printf(",left:");
-        printNode(node->left);
-        printf(",right:");
-        printNode(node->right);
-    }
-    printf("}");
-}
-
-void fprintNode(node_t* node){
-    if(node == NULL){
-        printf("0");
-        return;
-    }
-    fprintf(stderr,"{");
-    if(node->left == NULL && node->right == NULL){//leaf node
-        fprintf(stderr,"char:'%c',",isprint(node->code)?node->code:' ');
-        fprintf(stderr,"cnt:%zu,code:%d",node->cnt,(uint8_t)node->code);
-    }else{//stem node
-        fprintf(stderr,"cnt:%zu",node->cnt);
-        fprintf(stderr,",left:");
-        fprintNode(node->left);
-        fprintf(stderr,",right:");
-        fprintNode(node->right);
-    }
-    fprintf(stderr,"}");
-}
-
-void printNodeJSON(node_t* node){
-    if(node == NULL){
-        printf("0");
-        return;
-    }
-    printf("{");
-    if(node->left == NULL && node->right == NULL){//leaf node
-        char print_char = isprint(node->code)?node->code:' ';
-        if(print_char == '\''){
-            printf("\"char\":\"\\'\",");
-        }else{
-            printf("\"char\":\"%c\",",print_char);
-        }
-        printf("\"cnt\":%zu,\"code\":%d",node->cnt,(uint8_t)node->code);
-    }else{//stem node
-        printf("\"cnt\":%zu",node->cnt);
-        printf(",\"left\":");
-        printNodeJSON(node->left);
-        printf(",\"right\":");
-        printNodeJSON(node->right);
-    }
-    printf("}");
-}
-
-
-//tally the bits
-node_t** tally(uint8_t* str, size_t size){//returns a ll of nodes
-    size_t* table = calloc(256, sizeof(size_t));
-    for(size_t i = 0; i < size; i++){
-        table[str[i]]++;
-    }
-    //construct the tree
-    for(size_t i = 0; i < 256; i++){
-        size_t cnt = table[i];
-        node_t* node = malloc(sizeof(node_t));
-        table[i] = (size_t)node;
-        node->code = i;
-        node->cnt = cnt;
-        node->left = NULL;
-        node->right = NULL;
-    }
-    return (node_t**)table;
-}
-
 
 //minheap methods
 node_t** minheap_construct(size_t length){
@@ -168,12 +76,32 @@ node_t* minheap_pop(node_t** heap, size_t* tail0){
     return result;
 }
 
+//tally the bytes
+node_t** tally(uint8_t* str, size_t size){//returns a ll of nodes
+    size_t* table = calloc(256, sizeof(size_t));
+    for(size_t i = 0; i < size; i++){
+        table[str[i]]++;
+    }
+    //construct the tree
+    for(size_t i = 0; i < 256; i++){
+        size_t cnt = table[i];
+        node_t* node = malloc(sizeof(node_t));
+        table[i] = (size_t)node;
+        node->code = i;
+        node->cnt = cnt;
+        node->left = NULL;
+        node->right = NULL;
+    }
+    return (node_t**)table;
+}
+
+
 node_t* construct_huffman_tree(uint8_t* buff, size_t size){
     node_t** nodes = tally(buff,size);
     
     //printint nodes
     for(size_t i = 0; i < 256; i++){
-        fprintNode(nodes[i]);
+        node_fprint(nodes[i]);
         fprintf(stderr,"\n");
     }
     fprintf(stderr,"\n");
@@ -202,7 +130,7 @@ node_t* construct_huffman_tree(uint8_t* buff, size_t size){
     fprintf(stderr,"tail: %zu\n",tail);
     //printint nodes
     for(size_t i = 0; i <= tail; i++){
-        fprintNode(heap[i]);
+        node_fprint(heap[i]);
         fprintf(stderr,"\n");
     }
     fprintf(stderr,"\n");
@@ -229,14 +157,15 @@ node_t* construct_huffman_tree(uint8_t* buff, size_t size){
 
 
 int main(int argc, char** argv){
-    if(argc != 2)
-        fprintf(stderr,"Usage: ./a.out filename\n");
-    
-    char* fname = argv[1];
+    if(argc != 3)
+        fprintf(stderr,"Usage: ./a.out destname filename\n");
+        
+    char* dname = argv[1];
+    char* fname = argv[2];
     fprintf(stderr,"Reading the file: %s\n",fname);
     
     
-    FILE *file = fopen(fname, "rb");
+    FILE* file = fopen(fname, "rb");
     fseek(file, 0, SEEK_END);
     size_t fsize = ftell(file);
     fseek(file, 0, SEEK_SET);  /* same as rewind(f); */
@@ -246,51 +175,54 @@ int main(int argc, char** argv){
     fclose(file);
     
     //printing the incoming buffer
-    for(size_t i = 0; i < fsize; i++){
-        printf("%c",buff[i]);
-    }
+    //for(size_t i = 0; i < fsize; i++){
+    //    printf("%c",buff[i]);
+    //}
     
     node_t* tree = construct_huffman_tree(buff,fsize);
     
-    printNodeJSON(tree);
+    node_print_json(tree);
     printf("\n");
     
     cell_t* table = construct_table(tree);
     print_table(table);
     
-    //uint8_t* result = malloc(256*sizeof(cell_t));
-    buffer_t* result = pack_table(table, fsize);
-    buffer_print(result,8);
+    //the first 2 bytes are for max cell size
+    //initializing the field
+    buffer_t* field = buffer_construct(8+256*sizeof(cell_t)+fsize);
+    //reserving space for the size
+    field->offset_bytes = 8;
+    pack_table(field, table);
+    buffer_print(field,8);
+    for(size_t i = 0; i < fsize; i++){
+        uint8_t byte = buff[i];
+        buffer_append_bits(field,table[byte].bits,table[byte].size);
+    }
+    //buffer_print(field,8);
+    size_t size = field->offset_bytes+(field->offset_bits==0?0:1);
+    field->offset_bytes = 0;
+    field->offset_bits = 0;
+    buffer_append_bits(field,(uint8_t*)&fsize,sizeof(size_t)*8);
+    
+    fprintf(stderr,"Writing to the file: %s\n",dname);
+    FILE* dfile = fopen(dname,"wb");
+    if (dfile){
+        fwrite(field->buff, size, 1, dfile);
+        fprintf(stderr,"Complete\n");
+    }
+    else{
+        fprintf(stderr,"Error writing to the file: %s\n",dname);
+    }
+    
+    //freeing the field
+    buffer_destruct(field);
+    
     //write a compressed table as the header
     //for(){
     //    
     //}
     
-    free_node_recursive(tree);
-}
-
-
-
-
-//not using it anymore but kinda hesitant to delete it
-//qick sort
-void sort_nodes(node_t** nodes, size_t start, size_t end){
-    if(end - start <= 1){
-        return;
-    }
-    node_t* piv_node = nodes[start];
-    size_t piv_val = piv_node->cnt;
-    size_t piv_pos = start;
-    for(size_t i = start+1; i < end; i++){
-        if(nodes[i]->cnt < piv_val){
-            nodes[piv_pos] = nodes[i];
-            piv_pos++;
-            nodes[i] = nodes[piv_pos];
-        }//else just progress the pointer
-    }//now left of the piv will be lower, right will be higher in value
-    nodes[piv_pos] = piv_node;
-    sort_nodes(nodes,start,piv_pos);
-    sort_nodes(nodes,piv_pos+1,end);
+    node_destruct_recursive(tree);
 }
 
 

@@ -13,10 +13,7 @@ void print_table(cell_t* table){
         printf("code: %ld, ",i);
         printf("bits: ");
         cell_t cell = table[i];
-        for(size_t i = 0; i < cell.size; i++){
-            //printf("%d",buff_get_bit(testarr/*cell.bits*/,i));
-            printf("%d",buff_get_bit(cell.bits,i));
-        }
+        buff_print(cell.bits,cell.size);
         printf("}\n");
     }
     printf("]\n");
@@ -43,15 +40,12 @@ cell_t* construct_table(node_t* tree){
 }
 
 
-buffer_t* pack_table(cell_t* table, size_t bodysize){
+void pack_table(buffer_t* field, cell_t* table){
     size_t max_size = 0;
     for(size_t i = 0; i < 256; i++){
         cell_t cell = table[i];
         max_size = cell.size > max_size ? cell.size : max_size;
     }
-    //the first 2 bytes are for max cell size
-    //initializing the field
-    buffer_t* field = buffer_construct(256*sizeof(cell_t)+bodysize);
     
     size_t cell_size_size = log2ceil(max_size);
     //printf("size before: %ld %d\n", field->offset_bytes, field->offset_bits);
@@ -63,12 +57,22 @@ buffer_t* pack_table(cell_t* table, size_t bodysize){
         if(cell.size == 0){
             buffer_append_bit(field,0);
         }else{
+            if(i == 46){
+                buff_print(cell.bits,cell.size);
+                printf("\n");
+                buffer_print(field,8);
+            }
             buffer_append_bit(field,1);
+            if(i == 46){
+                buffer_print(field,8);
+            }
             buffer_append_bits(field,(uint8_t*)&cell.size,cell_size_size);//copy the size
+            if(i == 46){
+                buffer_print(field,8);
+            }
             buffer_append_bits(field,cell.bits,cell.size);//copy the size
         }
     }
-    return field;
 }
 
 
