@@ -64,6 +64,7 @@ node_t* unpack_node(buffer_t* field){
         }
         node->code = (uint8_t)i;
     }
+    buffer_print(field,8);
     free(buff);
     return root;
 }
