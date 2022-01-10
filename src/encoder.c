@@ -174,11 +174,6 @@ int main(int argc, char** argv){
     fread(buff, fsize, 1, file);
     fclose(file);
     
-    //printing the incoming buffer
-    //for(size_t i = 0; i < fsize; i++){
-    //    printf("%c",buff[i]);
-    //}
-    
     node_t* tree = construct_huffman_tree(buff,fsize);
     
     node_print_json(tree);
@@ -198,7 +193,6 @@ int main(int argc, char** argv){
         uint8_t byte = buff[i];
         buffer_append_bits(field,table[byte].bits,table[byte].size);
     }
-    //buffer_print(field,8);
     size_t size = field->offset_bytes+(field->offset_bits==0?0:1);
     field->offset_bytes = 0;
     field->offset_bits = 0;
@@ -214,14 +208,8 @@ int main(int argc, char** argv){
         fprintf(stderr,"Error writing to the file: %s\n",dname);
     }
     
-    //freeing the field
+    //freeing things
     buffer_destruct(field);
-    
-    //write a compressed table as the header
-    //for(){
-    //    
-    //}
-    
     node_destruct_recursive(tree);
 }
 
