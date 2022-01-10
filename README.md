@@ -2,8 +2,9 @@
 <h1 align="center">
     <img src="https://github.com/martian17/huffman/blob/main/visualize/huffman.png?raw=true">
 </h1>
-This is an implementation of huffman compressor/de-compressor. The compressor (encoder) generates bitwise huffman trees based on the inputs, and compresses the input using the tree.  
+This is an implementation of huffman compressor/de-compressor. The compressor (encoder) generates bitwise huffman trees based on the inputs, and compresses the input accordingly, and stores it with the compressed table.  
 Reverse is done in the de-compressor (decoder).
+
 ## Usage
 The argument order follows that of `zip`
 ```bash
