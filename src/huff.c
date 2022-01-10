@@ -1,14 +1,6 @@
 #include "all.h"
-#include "buffer.h"
 #include "table.h"
 
-
-typedef struct{
-    char code;
-    size_t cnt;
-    void* left;
-    void* right;
-} node_t;
 
 void free_node_recursive(node_t* node){
     if(node->left != NULL){
@@ -84,7 +76,7 @@ void printNodeJSON(node_t* node){
 
 
 //tally the bits
-node_t** tally(char* str, size_t size){//returns a ll of nodes
+node_t** tally(uint8_t* str, size_t size){//returns a ll of nodes
     size_t* table = calloc(256, sizeof(size_t));
     for(size_t i = 0; i < size; i++){
         table[str[i]]++;
@@ -176,7 +168,7 @@ node_t* minheap_pop(node_t** heap, size_t* tail0){
     return result;
 }
 
-node_t* construct_huffman_tree(char* buff, size_t size){
+node_t* construct_huffman_tree(uint8_t* buff, size_t size){
     node_t** nodes = tally(buff,size);
     
     //printint nodes
@@ -234,133 +226,6 @@ node_t* construct_huffman_tree(char* buff, size_t size){
 }
 
 
-/*
-typedef struct {
-    bitfield_t* field;
-    uint8_t bits[32];
-    size_t size;
-} cell_t;
-
-uint8_t bitfield_set(uint8_t field, uint8_t offset, uint8_t val){
-    field &= ~(1<<offset);
-    field |= val<<offset;
-    return field;
-}
-
-void write_bit(uint8_t* buff, size_t pos, uint8_t val){
-    size_t offset = pos/8;
-    uint8_t bits = (uint8_t)(pos-offset*8);
-    buff[offset] = bitfield_set(buff[offset],bits,val);
-}
-
-uint8_t get_bit(uint8_t* buff, size_t pos){
-    size_t offset = pos/8;
-    uint8_t bits = (uint8_t)(pos-offset*8);
-    return (buff[offset]>>bits)&1;
-}
-
-uint8_t* clone_buff(uint8_t* buff, size_t buffsize){
-    uint8_t* buff1 = malloc(buffsize);
-    for(size_t i = 0; i < buffsize; i++){
-        buff1[i] = buff[i];
-    }
-    return buff1;
-}
-
-void copy_buff(uint8_t* buff1, uint8_t* buff2, size_t buffsize){
-    for(size_t i = 0; i < buffsize; i++){
-        buff2[i] = buff1[i];
-    }
-}*/
-
-
-
-
-
-void print_table(cell_t* table){
-    printf("[\n");
-    //uint8_t testarr[] = {2,2,2,2,2,2,2,2};
-    for(size_t i = 0; i < 256; i++){
-        printf("{");
-        printf("char: '%c', ",isprint((char)i)?(char)i:' ');
-        printf("code: %ld, ",i);
-        printf("bits: ");
-        cell_t cell = table[i];
-        for(size_t i = 0; i < cell.size; i++){
-            //printf("%d",get_bit(testarr/*cell.bits*/,i));
-            printf("%d",get_bit(cell.bits,i));
-        }
-        printf("}\n");
-    }
-    printf("]\n");
-}
-
-void construct_table_kernel(node_t* tree, cell_t* table, uint8_t* buff, size_t buffpos, size_t buffsize){//buff records the bit sequence
-    if(tree->left == NULL){//leaf node
-        copy_buff(buff,table[tree->code].bits,buffsize);
-        table[tree->code].size = buffpos;
-    }else{
-        write_bit(buff,buffpos,0);
-        construct_table_kernel(tree->left, table, buff, buffpos+1, buffsize);
-        write_bit(buff,buffpos,1);
-        construct_table_kernel(tree->right, table, buff, buffpos+1, buffsize);
-    }
-}
-
-/*cell_t* construct_table(node_t* tree){
-    cell_t* table = malloc(256*sizeof(cell_t));
-    uint8_t* buff = malloc(32);
-    construct_table_kernel(tree,table,buff,0,32);
-    free(buff);
-    return table;
-}*/
-
-void construct_table_kernel(node_t* tree, bitfield_t* table, bitfield_t* cnt, size_t buffpos, size_t buffsize){//buff records the bit sequence
-    if(tree->left == NULL){//leaf node
-        copy_buff(buff,table[tree->code].bits,buffsize);
-        table[tree->code].size = buffpos;
-    }else{
-        write_bit(buff,buffpos,0);
-        construct_table_kernel(tree->left, table, buff, buffpos+1, buffsize);
-        write_bit(buff,buffpos,1);
-        construct_table_kernel(tree->right, table, buff, buffpos+1, buffsize);
-    }
-}
-
-
-bitfield_t* construct_table(node_t* tree){
-    bitfield_t* table = malloc(256*sizeof(bitfield_t));
-    bitfield_t* cnt = bitfield_construct(32);//32 bit bitfield
-    construct_table_kernel(tree,table,cnt
-    );
-    bitfield_destruct(cnt);
-    return table;
-}
-
-
-bitfield_t* pack_table(cell_t* table){
-    size_t max_size = 0;
-    for(size_t i = 0; i < 256; i++){
-        cell_t cell = table[i];
-        max_size = cell.size > max_size ? cell.size : max_size;
-    }
-    //the first 2 bytes are for max cell size
-    //initializing the field
-    bitfield_t* field = bitfield_construct(256*sizeof(cell_t));
-    
-    bitfield_append_bits(&field,&max_size,16);//copy 16 bit
-    for(size_t i = 0; i < 256; i++){
-        cell_t cell = table[i];
-        if(cell.size == 0){
-            bitfield_append_bit(&field,0);
-        }else{
-            bitfield_append_bit(&field,1);
-            bitfield_append_bits(&field,&cell.size,max_size);//copy the size
-            bitfield_append_bits(&field,cell.bits,cell.size);//copy the size
-        }
-    }
-    return field;
-}
 
 
 int main(int argc, char** argv){
@@ -376,7 +241,7 @@ int main(int argc, char** argv){
     size_t fsize = ftell(file);
     fseek(file, 0, SEEK_SET);  /* same as rewind(f); */
 
-    char *buff = malloc(fsize);
+    uint8_t* buff = malloc(fsize);
     fread(buff, fsize, 1, file);
     fclose(file);
     
@@ -393,11 +258,13 @@ int main(int argc, char** argv){
     cell_t* table = construct_table(tree);
     print_table(table);
     
-    uint8_t* result = malloc(256*sizeof(cell_t));
+    //uint8_t* result = malloc(256*sizeof(cell_t));
+    buffer_t* result = pack_table(table, fsize);
+    buffer_print(result,8);
     //write a compressed table as the header
-    for(){
-        
-    }
+    //for(){
+    //    
+    //}
     
     free_node_recursive(tree);
 }

@@ -1,5 +1,6 @@
 #include "all.h"
-#include "bitfield.h"
+#include "table.h"
+#include "mathutil.h"
 
 
 
@@ -26,9 +27,9 @@ void construct_table_kernel(node_t* tree, cell_t* table, uint8_t* buff, size_t b
         buff_copy(buff,table[tree->code].bits,TEMPBUFF_SIZE);
         table[tree->code].size = buffpos;
     }else{
-        buff_write_bit(buff,buffpos,0);
+        buff_set_bit(buff,buffpos,0);
         construct_table_kernel(tree->left, table, buff, buffpos+1);
-        buff_write_bit(buff,buffpos,1);
+        buff_set_bit(buff,buffpos,1);
         construct_table_kernel(tree->right, table, buff, buffpos+1);
     }
 }
@@ -52,15 +53,19 @@ buffer_t* pack_table(cell_t* table, size_t bodysize){
     //initializing the field
     buffer_t* field = buffer_construct(256*sizeof(cell_t)+bodysize);
     
-    buffer_append_bits(&field,&max_size,16);//copy 16 bit
+    size_t cell_size_size = log2ceil(max_size);
+    //printf("size before: %ld %d\n", field->offset_bytes, field->offset_bits);
+    buffer_append_bits(field,(uint8_t*)&cell_size_size,16);//copy 16 bit
+    
+    //printf("size after: %ld %d\n", field->offset_bytes, field->offset_bits);
     for(size_t i = 0; i < 256; i++){
         cell_t cell = table[i];
         if(cell.size == 0){
-            buffer_append_bit(&field,0);
+            buffer_append_bit(field,0);
         }else{
-            buffer_append_bit(&field,1);
-            buffer_append_bits(&field,&cell.size,max_size);//copy the size
-            buffer_append_bits(&field,cell.bits,cell.size);//copy the size
+            buffer_append_bit(field,1);
+            buffer_append_bits(field,(uint8_t*)&cell.size,cell_size_size);//copy the size
+            buffer_append_bits(field,cell.bits,cell.size);//copy the size
         }
     }
     return field;
@@ -68,7 +73,7 @@ buffer_t* pack_table(cell_t* table, size_t bodysize){
 
 
 
-
+//arcane record that tried to use bitfield.c for this
 /*
 void construct_table_kernel(node_t* tree, bitfield_t* table, bitfield_t* cnt, size_t buffpos, size_t buffsize){//buff records the bit sequence
     if(tree->left == NULL){//leaf node

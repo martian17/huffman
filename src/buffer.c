@@ -1,3 +1,4 @@
+#include "all.h"
 #include "buffer.h"
 
 buffer_t* buffer_construct(size_t size){
@@ -33,24 +34,43 @@ void buffer_append_bits(buffer_t* field, uint8_t* buff2, size_t length){//length
     }
     size_t remaining = length%8;
     if(remaining == 0){
-        return;
+        //do nothing
     }else if(offset_bits+remaining <= 8){//the rest fits in the byte
-        buff1[offset_bytes] |= (buff2[i]<<offset_bits)&(255>>(8-offset_bits-remaining))
+        buff1[offset_bytes] |= (buff2[i]<<offset_bits)&(255>>(8-offset_bits-remaining));
     }else{//doesn't fit in the byte
         buff1[offset_bytes] |= buff2[i]<<offset_bits;
         offset_bytes++;
-        buff1[offset_bytes] |= (buff2[i]>>(8-offset_bits))&(255>>(offset_bits+remaining-8));
+        buff1[offset_bytes] |= (buff2[i]>>(8-offset_bits))&(255>>(16-offset_bits-remaining));
     }
     field->offset_bits = (offset_bits+remaining)%8;
     field->offset_bytes = offset_bytes;
+    //buffer_print(field,8);
+    //printf("%ld %d\n",field->offset_bytes, field->offset_bits);
 }
 
 void buffer_append_bit(buffer_t* field, uint8_t bit){
-    buff1[field->offset_bytes] |= bit << field->offset_bits;
+    field->buff[field->offset_bytes] |= bit << field->offset_bits;
     //advance
     field->offset_bits++;
     field->offset_bytes += field->offset_bits/8;
     field->offset_bits %= 8;
+}
+
+void buffer_print(buffer_t* field, size_t rowsize){
+    size_t bytes = field->offset_bytes;
+    uint8_t bits = field->offset_bits;
+    for(size_t i = 0; i < bytes; i++){
+        uint8_t b = field->buff[i];
+        for(uint8_t i = 0; i < 8; i++){
+            printf("%d",bitfield_get(b,i));
+        }
+        printf(" ");
+        if((i+1)%rowsize == 0)printf("\n");
+    }
+    for(uint8_t i = 0; i < bits; i++){
+        printf("%d",bitfield_get(field->buff[bytes],i));
+    }
+    printf("\n");
 }
 
 
@@ -75,10 +95,14 @@ uint8_t bitfield_set(uint8_t field, uint8_t offset, uint8_t val){
     return field;
 }
 
-void buff_write_bit(uint8_t* buff, size_t pos, uint8_t val){
+void buff_set_bit(uint8_t* buff, size_t pos, uint8_t val){
     size_t offset = pos/8;
     uint8_t bits = (uint8_t)(pos-offset*8);
     buff[offset] = bitfield_set(buff[offset],bits,val);
+}
+
+uint8_t bitfield_get(uint8_t field, uint8_t offset){
+    return (field>>offset)&1;
 }
 
 uint8_t buff_get_bit(uint8_t* buff, size_t pos){
