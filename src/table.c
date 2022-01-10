@@ -57,19 +57,8 @@ void pack_table(buffer_t* field, cell_t* table){
         if(cell.size == 0){
             buffer_append_bit(field,0);
         }else{
-            if(i == 46){
-                buff_print(cell.bits,cell.size);
-                printf("\n");
-                buffer_print(field,8);
-            }
             buffer_append_bit(field,1);
-            if(i == 46){
-                buffer_print(field,8);
-            }
             buffer_append_bits(field,(uint8_t*)&cell.size,cell_size_size);//copy the size
-            if(i == 46){
-                buffer_print(field,8);
-            }
             buffer_append_bits(field,cell.bits,cell.size);//copy the size
         }
     }
