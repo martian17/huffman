@@ -32,6 +32,7 @@ void construct_table_kernel(node_t* tree, cell_t* table, uint8_t* buff, size_t b
 
 cell_t* construct_table(node_t* tree){
     cell_t* table = malloc(256*sizeof(cell_t));
+    //this can be allocated on the stack
     uint8_t* buff = malloc(TEMPBUFF_SIZE);
     construct_table_kernel(tree,table,buff,0);
     free(buff);
