@@ -84,3 +84,6 @@ The next segment documents the compressed table. It consists of 256 entries, and
 
 ## Body
 The body consists of a concatenated bit sequence of huffman codes.
+
+## Effectiveness
+The encoder is about half as effective as zip at compressing english text files.
