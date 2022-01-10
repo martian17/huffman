@@ -1,7 +1,7 @@
 #include "all.h"
 #include "table.h"
 
-cell_t* inflate_table(buffer_t* field){
+cell_t* unpack_table(buffer_t* field){
     buffer_print(field,8);
     size_t cell_size_size = 0;
     printf("position: %ld %d\n",field->offset_bytes,field->offset_bits);
@@ -47,7 +47,7 @@ int main(int argc, char** argv){
     field->offset_bytes = 8;
     field->offset_bits = 0;
     
-    cell_t* table = inflate_table(field);
+    cell_t* table = unpack_table(field);
     print_table(table);
     
     
